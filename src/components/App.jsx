@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { SearchBar } from "./SearchBar/SearchBar";
 import { AppWrapper } from "./App.styled";
 import { LoadMore } from "./LoadMore/LoadMore";
@@ -13,7 +13,7 @@ import { Modal } from './Modal/Modal';
 
 export const App = () => {
     const [actualQuery, setActualQuery] = useState('');
-    const [page, setPage] = useState(1);
+    const pageRef = useRef(1);
     const [images, setImages] = useState([]);
     const [loading, setLoading] = useState(false);
     const [, setError] = useState(false);
@@ -25,14 +25,14 @@ export const App = () => {
         if (actualQuery) {
             async function fetchData() {
                 const query = actualQuery.split('/')[1];
+                
                 try {
-                    setPage(1);
                     setLoading(true);
                     setError(false);
 
-                    const resp = await getImages(query, 1);
+                    const resp = await getImages(query, pageRef);
                     setImages(resp.hits);
-                    setLoadMore(page < Math.ceil(resp.totalHits / 12));
+                    setLoadMore(pageRef < Math.ceil(resp.totalHits / 12));
                 } catch {
                     setError(true);
                 } finally {
@@ -43,12 +43,13 @@ export const App = () => {
             fetchData();
         }
 
-    }, [actualQuery]);
+    }, [actualQuery]); 
 
 
     const onFormSubmit = newQuery => {
         if (newQuery !== actualQuery) {
             setActualQuery(`${Date.now()}/${newQuery}`)
+            pageRef.current = 1;
         }
     }
 
@@ -56,10 +57,10 @@ export const App = () => {
         try {
             setLoading(true);
             const query = actualQuery.split('/')[1];
-            const nextPage = page + 1;
+            pageRef.current += 1; // Increment page using ref
+            const nextPage = pageRef.current;
             const resp = await getImages(query, nextPage);
-            setPage(nextPage);
-            setImages(prevImages => [...prevImages, ...resp.hits]); 
+            setImages(prevImages => [...prevImages, ...resp.hits]);
             setLoadMore(nextPage < Math.ceil(resp.totalHits / 12));
         } catch {
             setError(true);
